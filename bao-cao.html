@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Báo cáo lab — Redpanda / Kafka PBX mblife (lab-quan)</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1d2330;
+  --muted: #5d6676;
+  --line: #e3e7ee;
+  --card: #f6f8fb;
+  --accent: #d94f2b;
+  --accent-soft: #fdf0ec;
+  --link: #1f62c9;
+  --warn-bg: #fff7e0;
+  --warn-line: #e6b422;
+  --ok-bg: #eaf7ef;
+  --ok-line: #2f9e5b;
+  --code-bg: #141a24;
+  --code-fg: #e4e8ef;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #10141b;
+    --fg: #dfe4ec;
+    --muted: #97a1b2;
+    --line: #262d39;
+    --card: #171c25;
+    --accent: #ff7a52;
+    --accent-soft: #2a1a15;
+    --link: #79b0ff;
+    --warn-bg: #2a2410;
+    --warn-line: #b38a12;
+    --ok-bg: #12261a;
+    --ok-line: #3fb36f;
+    --code-bg: #0a0d12;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 17px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+a { color: var(--link); }
+.layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 780px);
+  gap: 48px;
+  justify-content: center;
+  padding: 40px 24px 96px;
+}
+nav.toc {
+  position: sticky;
+  top: 24px;
+  align-self: start;
+  font-size: 14px;
+}
+nav.toc summary { font-weight: 700; cursor: pointer; margin-bottom: 8px; list-style: none; }
+nav.toc ol { padding-left: 20px; margin: 0; }
+nav.toc li { margin: 6px 0; }
+nav.toc a { color: var(--muted); text-decoration: none; }
+nav.toc a:hover { color: var(--accent); }
+main { min-width: 0; }
+header.hero h1 {
+  font-size: 36px;
+  line-height: 1.15;
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+}
+header.hero .meta { color: var(--muted); font-size: 15px; margin: 0 0 24px; }
+header.hero p.lede { color: var(--muted); font-size: 18px; margin: 0 0 28px; }
+h2 {
+  font-size: 26px;
+  margin: 56px 0 16px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+h3 { font-size: 20px; margin: 28px 0 10px; }
+p, ul, ol { margin: 0 0 16px; }
+code {
+  font: 0.88em/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.box {
+  border-radius: 10px;
+  padding: 18px 22px;
+  margin: 20px 0;
+  border: 1px solid var(--line);
+  background: var(--card);
+}
+.box > :last-child { margin-bottom: 0; }
+.box.ok { background: var(--ok-bg); border-color: var(--ok-line); }
+.box.warn { background: var(--warn-bg); border-color: var(--warn-line); }
+.box.tldr { background: var(--accent-soft); border-color: var(--accent); }
+pre.output {
+  margin: 16px 0;
+  padding: 14px 16px;
+  background: var(--code-bg);
+  color: var(--code-fg);
+  border-radius: 10px;
+  font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 15px;
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+th { background: var(--card); font-weight: 700; }
+.tablewrap { overflow-x: auto; }
+.flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 24px 0;
+  padding: 20px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.flow .node {
+  padding: 12px 18px;
+  border-radius: 8px;
+  border: 2px solid var(--line);
+  font-weight: 600;
+  text-align: center;
+  min-width: 120px;
+}
+.flow .node.producer { border-color: var(--link); background: rgba(31, 98, 201, 0.08); }
+.flow .node.broker { border-color: var(--accent); background: var(--accent-soft); }
+.flow .node.consumer { border-color: var(--ok-line); background: var(--ok-bg); }
+.flow .arrow { color: var(--muted); font-size: 22px; font-weight: 700; }
+footer { margin-top: 48px; color: var(--muted); font-size: 14px; }
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  nav.toc { position: static; border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; background: var(--card); }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav class="toc">
+  <details open>
+    <summary>Mục lục</summary>
+    <ol>
+      <li><a href="#tong-quan">Tổng quan</a></li>
+      <li><a href="#ha-tang">Hạ tầng &amp; Redpanda</a></li>
+      <li><a href="#ung-dung">Producer / Consumer / check</a></li>
+      <li><a href="#ket-qua">Kết quả chạy</a></li>
+      <li><a href="#kafka-flow">Luồng Kafka</a></li>
+      <li><a href="#don-lab">Dọn lab</a></li>
+      <li><a href="#tom-tat">Tóm tắt</a></li>
+    </ol>
+  </details>
+</nav>
+
+<main>
+
+<header class="hero">
+  <h1>Báo cáo lab PBX mblife</h1>
+  <p class="meta">Học viên: Quân · <code>LAB_NAME=lab-quan</code> · Redpanda trên Vultr · Python <code>confluent-kafka</code></p>
+  <p class="lede">Lab xây pipeline CDR giả: topic <code>mblife.pbx.cdr.v1</code>, producer gửi JSON, consumer ghi SQLite idempotent, <code>check.py</code> đối chiếu watermark với DB. VM lab đã được dọn bằng <code>vultr_down.py</code> sau khi hoàn thành thử nghiệm.</p>
+</header>
+
+<section id="tong-quan">
+  <h2>Tổng quan môi trường</h2>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>Thành phần</th><th>Trạng thái / ghi chú</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Lab name</td><td><code>lab-quan</code> (instance label, firewall description, SSH key name)</td></tr>
+        <tr><td>VM (Vultr)</td><td>Region <code>sgp</code>, plan <code>vc2-2c-4gb</code>, Ubuntu 24.04 — IP tại thời điểm lab: <code>45.77.252.72</code></td></tr>
+        <tr><td>Redpanda</td><td>1 node native (apt), cổng <code>9092</code>, giới hạn RAM ~2G, <code>rpk cluster health</code> → Healthy</td></tr>
+        <tr><td>Dev machine</td><td>Windows + PowerShell, <code>.venv</code>, scripts Python local</td></tr>
+        <tr><td>Topic chính</td><td><code>mblife.pbx.cdr.v1</code> — 6 partition, replication 1, retention 30 ngày, zstd</td></tr>
+        <tr><td>Topic phụ</td><td><code>mblife.pbx.call-insight.v1</code> — retention 90 ngày, <code>max.message.bytes=4MB</code></td></tr>
+        <tr><td>Persist local</td><td><code>cdr.db</code> — bảng <code>cdr</code>, PK <code>linkedid</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="ha-tang">
+  <h2>Hạ tầng &amp; Redpanda</h2>
+  <ul>
+    <li><code>vultr_explore.py</code> — đọc API (số dư, region sgp, plan, <code>os_id=2284</code>).</li>
+    <li><code>vultr_up.py</code> — idempotent: SSH key, firewall (TCP 22 &amp; 9092 chỉ IP public /32), instance gắn tag <code>lab</code>, ghi <code>VM_IP</code> vào <code>.env</code>.</li>
+    <li><code>install_redpanda.sh</code> — repo <code>linux.pkg.redpanda.com</code>, bootstrap một node, <code>empty_seed_starts_cluster=false</code>, systemd <code>redpanda</code>.</li>
+    <li>Firewall: Vultr group + UFW trên VM (mở 9092; nguồn vẫn bị giới hạn ở tầng Vultr).</li>
+  </ul>
+  <div class="box ok">
+    <p><strong>Kết nối từ máy dev:</strong> <code>Test-NetConnection VM_IP -Port 9092</code> → <code>TcpTestSucceeded : True</code>.</p>
+  </div>
+</section>
+
+<section id="ung-dung">
+  <h2>Producer / Consumer / check</h2>
+  <h3>Producer (<code>producer.py</code>)</h3>
+  <ul>
+    <li>Topic <code>mblife.pbx.cdr.v1</code>, key = <code>linkedid</code> (<code>&lt;time_ns&gt;.&lt;seq&gt;</code>).</li>
+    <li><code>acks=all</code>, <code>enable.idempotence</code>, nén zstd; JSON CDR giả (billsec 0 → <code>NO ANSWER</code>, <code>answer=null</code>).</li>
+  </ul>
+  <h3>Consumer (<code>consumer.py</code>)</h3>
+  <ul>
+    <li>Group <code>cdr-backend-writer</code>, <code>enable.auto.commit=false</code>, batch 100 message.</li>
+    <li><code>INSERT … ON CONFLICT(linkedid) DO UPDATE</code> — replay không nhân bản dòng.</li>
+    <li>Thứ tự: <code>db.commit()</code> rồi <code>consumer.commit()</code> (at-least-once an toàn).</li>
+    <li><code>on_assign</code> in partition + <code>hostname-pid</code>.</li>
+  </ul>
+  <h3>Check (<code>check.py</code>)</h3>
+  <ul>
+    <li>Group riêng <code>cdr-check-readonly</code>, không commit offset.</li>
+    <li>Tổng high watermark 6 partition so với <code>COUNT(*)</code> trong <code>cdr.db</code>.</li>
+  </ul>
+</section>
+
+<section id="ket-qua">
+  <h2>Kết quả chạy (minh chứng)</h2>
+
+  <h3>Producer thử <code>--count 5</code></h3>
+  <pre class="output">linkedid=1791349596171673400.1 partition=3 offset=0
+linkedid=1791349596171673400.2 partition=3 offset=1
+linkedid=1791349596171673400.5 partition=0 offset=0
+linkedid=1791349596171673400.3 partition=1 offset=0
+linkedid=1791349596171673400.4 partition=2 offset=0
+Thành công: 5, thất bại: 0</pre>
+
+  <h3>Consumer — xử lý backlog &amp; rebalance</h3>
+  <pre class="output">[LAPTOP-50DIQQPL-27776] partition được giao: mblife.pbx.cdr.v1[0] … [5]
+Đã xử lý lần chạy này: 810 message.
+Tổng dòng trong bảng cdr: 810.</pre>
+  <p>Chạy thêm consumer khi có nhiều member trong group → log <code>on_assign</code> thay đổi partition (rebalance).</p>
+  <pre class="output">Đã xử lý lần chạy này: 139 message.
+Tổng dòng trong bảng cdr: 1110.</pre>
+
+  <h3><code>check.py</code> — đối chiếu Kafka vs SQLite</h3>
+  <pre class="output"> partition        high
+----------  ----------
+         0         155
+         1         137
+         2         135
+         3         131
+         4         116
+         5         136
+      TỔNG         810
+
+Số dòng trong cdr.db: 810
+OK</pre>
+
+  <h3>Bài replay — seek về đầu topic</h3>
+  <pre class="output">ssh root@45.77.252.72 "rpk group seek cdr-backend-writer --to start --topics mblife.pbx.cdr.v1"
+
+mblife.pbx.cdr.v1  0  PRIOR-OFFSET 201  CURRENT-OFFSET 0
+… (các partition 1–5 tương tự về 0)</pre>
+  <pre class="output">Đã xử lý lần chạy này: 1110 message.
+Tổng dòng trong bảng cdr: 1110.</pre>
+  <div class="box ok">
+    <p>Đọc lại toàn bộ log topic nhưng <code>ON CONFLICT</code> giữ <strong>1110 dòng</strong> — replay idempotent sau sửa logic / seek.</p>
+  </div>
+</section>
+
+<section id="kafka-flow">
+  <h2>Luồng: Producer → Redpanda → Consumer</h2>
+  <div class="flow" aria-label="Luồng dữ liệu">
+    <div class="node producer">Producer<br><small>producer.py</small></div>
+    <span class="arrow" aria-hidden="true">→</span>
+    <div class="node broker">Redpanda<br><small>9092 · 6 partition</small></div>
+    <span class="arrow" aria-hidden="true">→</span>
+    <div class="node consumer">Consumer<br><small>cdr-backend-writer</small></div>
+  </div>
+  <ul>
+    <li><strong>Key <code>linkedid</code>:</strong> cùng cuộc gọi → cùng partition; phân tán tốt hơn key theo tenant lớn.</li>
+    <li><strong>Offset:</strong> commit sau DB → crash giữa chừng vẫn đọc lại được; seek <code>--to start</code> mô phỏng deploy lại consumer.</li>
+    <li><strong>Retention trên broker:</strong> producer gửi khi consumer tắt — message vẫn nằm trên topic đến khi consumer bắt kịp.</li>
+  </ul>
+</section>
+
+<section id="don-lab">
+  <h2>Dọn tài nguyên (<code>vultr_down.py</code>)</h2>
+  <p>Chỉ xoá tài nguyên có tên đúng <code>LAB_NAME</code>; xác nhận gõ lại <code>lab-quan</code>; thứ tự: instance → chờ biến mất → firewall → SSH key.</p>
+  <pre class="output">Đang xoá instance 6cd4f39a-7329-46c6-a697-c9267ec54ff9...
+Instance đã biến mất.
+Đã xoá firewall group.
+Đã xoá SSH key.
+Hoàn tất dọn lab.</pre>
+  <div class="box warn">
+    <p>Sau <code>vultr_down</code>, <code>VM_IP</code> trong <code>.env</code> không còn dùng được — cần <code>vultr_up.py</code> nếu làm lab lại.</p>
+  </div>
+</section>
+
+<section id="tom-tat">
+  <h2>Tóm tắt</h2>
+  <ol>
+    <li>Hoàn thành lab Redpanda/Kafka CDR: topic, producer, consumer SQLite, <code>check.py</code> báo <strong>OK</strong> tại checkpoint 810 message.</li>
+    <li>Thực hành consumer group, rebalance, seek replay 1110 message không nhân bản dòng DB.</li>
+    <li>Hạ tầng Vultr tạo/xoá an toàn theo <code>LAB_NAME</code>; không commit <code>.env</code> (API key).</li>
+    <li>Đã dọn VM và tài nguyên Vultr sau khi nộp minh chứng.</li>
+  </ol>
+</section>
+
+<footer>
+  <p>Repo: <code>redpanda-lab</code> · Ngày báo cáo: 7 tháng 10, 2026 · File đính kèm Teams: <code>bao-cao.html</code></p>
+</footer>
+
+</main>
+</div>
+</body>
+</html>
