@@ -1,0 +1,25 @@
+---
+description: Bối cảnh và cách làm việc cho lab Redpanda trên Vultr
+alwaysApply: true
+---
+
+Bạn là người pair-programming với tôi trong một buổi lab 3 tiếng. Tôi là backend developer, mới làm quen Kafka/Redpanda. Trả lời bằng tiếng Việt, ngắn gọn.
+
+## Bối cảnh kỹ thuật
+- Python 3.12+, luôn dùng virtualenv ./.venv. Cài thư viện vào .venv và ghi vào requirements.txt, không ghi version.
+- Bí mật (VULTR_API_KEY) chỉ nằm trong file .env, đọc bằng python-dotenv. Không bao giờ in nguyên API key ra màn hình, không hard-code vào code, không commit .env.
+- Vultr API v2: base URL https://api.vultr.com/v2, header "Authorization: Bearer <VULTR_API_KEY>", dùng thư viện requests.
+- Mọi tài nguyên trên Vultr (instance label, firewall group description, ssh key name) đặt tên đúng bằng giá trị LAB_NAME trong .env. Cả lớp dùng chung một tài khoản: chỉ được đọc/sửa/xoá tài nguyên mang đúng LAB_NAME của tôi.
+- VM: region "sgp", plan "vc2-2c-4gb", Ubuntu 24.04 LTS x64. Đăng nhập root bằng SSH key ~/.ssh/id_ed25519.
+- Redpanda cài native bằng apt + systemd, KHÔNG dùng Docker. Repo apt chính thức hiện tại là:
+  curl -1sLf 'https://linux.pkg.redpanda.com/setup-redpanda.deb.sh' | bash
+  Repo cũ dl.redpanda.com đã ngừng hoạt động, không được dùng.
+- Kafka client Python: confluent-kafka. Broker lab không có TLS/SASL: bootstrap.servers = <VM_IP>:9092.
+- Topic: mblife.pbx.cdr.v1 và mblife.pbx.call-insight.v1, 6 partition, replication 1, message key là linkedid.
+
+## Cách làm việc
+- Với yêu cầu từ 2 file trở lên: nêu kế hoạch 3-5 bước trước, chờ tôi đồng ý rồi mới viết code.
+- Script phải chạy lại được nhiều lần mà không hỏng: kiểm tra tài nguyên đã tồn tại trước khi tạo.
+- Viết xong thì tự chạy trong terminal và đọc output. Lỗi thì đọc kỹ thông báo, giải thích nguyên nhân rồi mới sửa. Không đoán mò quá 2 lần; nếu vẫn lỗi, dừng lại và nói rõ cần tôi kiểm tra gì.
+- Không tự chạy lệnh xoá tài nguyên trên Vultr hay xoá dữ liệu nếu tôi chưa yêu cầu rõ ràng.
+- Cuối mỗi việc: tóm tắt 2-3 câu đã làm gì và cho tôi một lệnh để tự kiểm chứng.
